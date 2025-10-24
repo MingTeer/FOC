@@ -1,0 +1,160 @@
+# Keil µVision generated files
+# ----------------------------------------
+# Build outputs and intermediate files
+MDK-ARM/*.o
+MDK-ARM/*.crf
+MDK-ARM/*.d
+MDK-ARM/*.tmp
+MDK-ARM/*.lnp
+MDK-ARM/*.plg
+MDK-ARM/*.tra
+MDK-ARM/*.dep
+MDK-ARM/*.uvguix.*
+MDK-ARM/*.uvoptx
+MDK-ARM/Objects/
+MDK-ARM/Listings/
+MDK-ARM/Exe/
+MDK-ARM/Startup/
+MDK-ARM/DebugConfig/
+MDK-ARM/ RTE/
+MDK-ARM/.scvd-build-stamp
+
+# Keep the project files
+!MDK-ARM/*.uvprojx
+!MDK-ARM/*.uvproj
+
+# STM32CubeMX generated files
+# ----------------------------------------
+# .mxproject is generated but we can exclude it
+# .ioc file should be kept as it's the source configuration
+*.mxproject
+
+# Build and compilation artifacts
+# ----------------------------------------
+*.o
+*.obj
+*.elf
+*.axf
+*.hex
+*.bin
+*.map
+*.d
+*.i
+*.su
+*.idb
+*.pdb
+*.ilk
+*.meta
+
+# STM32CubeIDE generated files
+# ----------------------------------------
+# Eclipse/STM32CubeIDE specific
+.cproject
+.project
+.settings/
+*.launch
+*.cproject
+*.project
+
+# Debug and log files
+# ----------------------------------------
+*.log
+*.bak
+*.tmp
+*.temp
+*~
+.DS_Store
+Thumbs.db
+
+# IDE and editor files
+# ----------------------------------------
+# VS Code - Exclude user-specific files
+.vscode/
+!vscode/launch.json
+!vscode/tasks.json
+.vscode/settings.json
+.vscode/extensions.json
+
+# Other editors
+*.swp
+*.swo
+*~
+
+# Claude Code specific files (as requested)
+# ----------------------------------------
+.claude/
+CLAUDE.md
+AGENTS.md
+
+# Temporary files
+# ----------------------------------------
+*.orig
+*.rej
+.~lock.*
+
+# System files
+# ----------------------------------------
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Backup files
+# ----------------------------------------
+*.backup
+*.bak
+*.old
+*.orig
+
+# Compiled libraries (if any)
+# ----------------------------------------
+*.a
+*.lib
+*.so
+*.dll
+*.dylib
+
+# Documentation build
+# ----------------------------------------
+docs/_build/
+docs/build/
+
+# Coverage reports
+# ----------------------------------------
+coverage/
+*.gcov
+*.gcda
+*.gcno
+
+# Package files
+# ----------------------------------------
+*.zip
+*.tar.gz
+*.rar
+*.7z
+
+# Keep important configuration and source files
+# ----------------------------------------
+!FOC_TESTV1.0.ioc
+!Core/
+!CODE/
+!Drivers/
+!README.md
+!.gitignore
+
+# Source code files should always be included
+!*.c
+!*.h
+!*.cpp
+!*.hpp
+!*.s
+!*.S
+!*.inc
+
+# Configuration files should be included
+!*.ioc
+!*.txt
+!*.md
