@@ -435,6 +435,11 @@
               <FileType>1</FileType>
               <FilePath>../Core/Src/stm32g0xx_hal_msp.c</FilePath>
             </File>
+            <File>
+              <FileName>dma.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Core\Src\dma.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -584,6 +589,36 @@
               <FileName>AS5600.h</FileName>
               <FileType>5</FileType>
               <FilePath>..\CODE\AS5600.h</FilePath>
+            </File>
+            <File>
+              <FileName>fast_math.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\CODE\fast_math.c</FilePath>
+            </File>
+            <File>
+              <FileName>fast_math.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\CODE\fast_math.h</FilePath>
+            </File>
+            <File>
+              <FileName>FOC.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\CODE\FOC.c</FilePath>
+            </File>
+            <File>
+              <FileName>FOC.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\CODE\FOC.h</FilePath>
+            </File>
+            <File>
+              <FileName>current_sensor.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\CODE\current_sensor.c</FilePath>
+            </File>
+            <File>
+              <FileName>current_sensor.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\CODE\current_sensor.h</FilePath>
             </File>
           </Files>
         </Group>

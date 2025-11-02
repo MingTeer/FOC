@@ -9,6 +9,7 @@
 "foc_testv1.0\usart.o"
 "foc_testv1.0\stm32g0xx_it.o"
 "foc_testv1.0\stm32g0xx_hal_msp.o"
+"foc_testv1.0\dma.o"
 "foc_testv1.0\stm32g0xx_hal_adc.o"
 "foc_testv1.0\stm32g0xx_hal_adc_ex.o"
 "foc_testv1.0\stm32g0xx_ll_adc.o"
@@ -35,6 +36,9 @@
 "foc_testv1.0\stm32g0xx_hal_uart_ex.o"
 "foc_testv1.0\system_stm32g0xx.o"
 "foc_testv1.0\as5600.o"
+"foc_testv1.0\fast_math.o"
+"foc_testv1.0\foc.o"
+"foc_testv1.0\current_sensor.o"
 --library_type=microlib --strict --scatter "FOC_TESTV1.0\FOC_TESTV1.sct"
 --summary_stderr --info summarysizes --map --load_addr_map_info --xref --callgraph --symbols
 --info sizes --info totals --info unused --info veneers

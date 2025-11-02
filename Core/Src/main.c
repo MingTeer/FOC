@@ -25,7 +25,9 @@
 #include "usart.h"
 #include "gpio.h"
 #include "AS5600.h"
-
+#include "current_sensor.h"
+#include "FOC.h"
+#include "dma.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 
@@ -92,6 +94,7 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  MX_DMA_Init();
   MX_ADC1_Init();
   MX_I2C1_Init();
   MX_TIM1_Init();
@@ -99,19 +102,25 @@ int main(void)
   MX_SPI1_Init();
   MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
-  I2C_ScanDevices();
+  TIM1_StartPWM();
+  HAL_Delay(1000);
+  ADC_Start_DMA();
+  Current_Sensor_Calibrate_Zero();
+  FOC_Init(12.0f, 3.0f);  // 启动ADC DMA，在所有外设初始化完成后进行
   /* USER CODE END 2 */
-
+	float currents[2];
+	float Iq = 0.0f;
+	float Id = 0.0f;
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
     /* USER CODE END WHILE */
-    
-    uint32_t tick_start = get_microsecond_timestamp();
-    float angle = Get_absolute_angle();
-    uint32_t elapsed = get_elapsed_microseconds(tick_start);
-    printf("angle: %f, elapsed: %lu us\r\n", angle, elapsed);
+    float radian = electricAngle_position();
+    Get_Phase_Currents(currents);
+    setPhaseVoltage(1, 0, radian);
+    cal_Iq_Id(currents[0], currents[1], radian, &Iq, &Id);
+    printf("%f,%f,%f,%f\n", Iq,Id,currents[0],currents[1]);
     /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */

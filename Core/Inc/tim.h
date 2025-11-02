@@ -48,6 +48,12 @@ void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);
 void microsecondTimer_Init(void);
 uint32_t get_microsecond_timestamp(void);
 uint32_t get_elapsed_microseconds(uint32_t start_timestamp);
+
+void TIM1_CH1_SetDutyCycle(uint32_t duty_cycle);
+void TIM1_CH2_SetDutyCycle(uint32_t duty_cycle);
+void TIM1_CH3_SetDutyCycle(uint32_t duty_cycle);
+void TIM1_StartPWM(void);
+void TIM1_StopPWM(void);
 /* USER CODE END Prototypes */
 
 #ifdef __cplusplus

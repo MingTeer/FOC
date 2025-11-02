@@ -27,7 +27,7 @@
 TIM_HandleTypeDef htim1;
 TIM_HandleTypeDef htim3;
 
-/* TIM1 init function */
+/* TIM1 初始化函数 */
 void MX_TIM1_Init(void)
 {
 
@@ -35,105 +35,111 @@ void MX_TIM1_Init(void)
 
   /* USER CODE END TIM1_Init 0 */
 
-  TIM_MasterConfigTypeDef sMasterConfig = {0};
-  TIM_OC_InitTypeDef sConfigOC = {0};
-  TIM_BreakDeadTimeConfigTypeDef sBreakDeadTimeConfig = {0};
+  TIM_MasterConfigTypeDef sMasterConfig = {0}; // 主模式配置结构体
+  TIM_OC_InitTypeDef sConfigOC = {0};          // 输出比较配置结构体
+  TIM_BreakDeadTimeConfigTypeDef sBreakDeadTimeConfig = {0}; // 死区和断保护结构体
 
   /* USER CODE BEGIN TIM1_Init 1 */
 
   /* USER CODE END TIM1_Init 1 */
-  htim1.Instance = TIM1;
-  htim1.Init.Prescaler = 0;
-  htim1.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim1.Init.Period = 65535;
-  htim1.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-  htim1.Init.RepetitionCounter = 0;
-  htim1.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
-  if (HAL_TIM_OC_Init(&htim1) != HAL_OK)
+  htim1.Instance = TIM1; // 选择定时器1
+  htim1.Init.Prescaler = 7; // 预分频器为7，(8分频后10kHz@80MHz)
+  htim1.Init.CounterMode = TIM_COUNTERMODE_UP; // 向上计数模式
+  htim1.Init.Period = 999; // 自动重装载值，PWM周期(1000计数，对应10kHz@8MHz)
+  htim1.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1; // 时钟不分频
+  htim1.Init.RepetitionCounter = 0; // 重复计数器
+  htim1.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE; // 不启用预装载
+  if (HAL_TIM_OC_Init(&htim1) != HAL_OK) // 基本输出比较初始化
   {
     Error_Handler();
   }
-  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
-  sMasterConfig.MasterOutputTrigger2 = TIM_TRGO2_RESET;
-  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
-  if (HAL_TIMEx_MasterConfigSynchronization(&htim1, &sMasterConfig) != HAL_OK)
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET; // 主模式触发输出选择
+  sMasterConfig.MasterOutputTrigger2 = TIM_TRGO2_OC4REF;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE; // 禁止主从模式
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim1, &sMasterConfig) != HAL_OK) // 主从同步配置
   {
     Error_Handler();
   }
-  sConfigOC.OCMode = TIM_OCMODE_TIMING;
-  sConfigOC.Pulse = 0;
-  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
-  sConfigOC.OCNPolarity = TIM_OCNPOLARITY_HIGH;
-  sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
-  sConfigOC.OCIdleState = TIM_OCIDLESTATE_RESET;
-  sConfigOC.OCNIdleState = TIM_OCNIDLESTATE_RESET;
-  if (HAL_TIM_OC_ConfigChannel(&htim1, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
+  sConfigOC.OCMode = TIM_OCMODE_PWM1; // 输出比较模式设为PWM1
+  sConfigOC.Pulse = 0; // 初始脉冲宽度为0
+  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH; // 输出极性为高
+  sConfigOC.OCNPolarity = TIM_OCNPOLARITY_HIGH; // 互补输出极性为高
+  sConfigOC.OCFastMode = TIM_OCFAST_DISABLE; // 不使能快速模式
+  sConfigOC.OCIdleState = TIM_OCIDLESTATE_RESET; // 空闲状态为低
+  sConfigOC.OCNIdleState = TIM_OCNIDLESTATE_RESET; // 互补空闲为低
+  if (HAL_TIM_OC_ConfigChannel(&htim1, &sConfigOC, TIM_CHANNEL_1) != HAL_OK) // 配置通道1
   {
     Error_Handler();
   }
-  if (HAL_TIM_OC_ConfigChannel(&htim1, &sConfigOC, TIM_CHANNEL_2) != HAL_OK)
+  if (HAL_TIM_OC_ConfigChannel(&htim1, &sConfigOC, TIM_CHANNEL_2) != HAL_OK) // 配置通道2
   {
     Error_Handler();
   }
-  if (HAL_TIM_OC_ConfigChannel(&htim1, &sConfigOC, TIM_CHANNEL_3) != HAL_OK)
+  if (HAL_TIM_OC_ConfigChannel(&htim1, &sConfigOC, TIM_CHANNEL_3) != HAL_OK) // 配置通道3
   {
     Error_Handler();
   }
-  sBreakDeadTimeConfig.OffStateRunMode = TIM_OSSR_DISABLE;
-  sBreakDeadTimeConfig.OffStateIDLEMode = TIM_OSSI_DISABLE;
-  sBreakDeadTimeConfig.LockLevel = TIM_LOCKLEVEL_OFF;
-  sBreakDeadTimeConfig.DeadTime = 0;
-  sBreakDeadTimeConfig.BreakState = TIM_BREAK_DISABLE;
-  sBreakDeadTimeConfig.BreakPolarity = TIM_BREAKPOLARITY_HIGH;
-  sBreakDeadTimeConfig.BreakFilter = 0;
-  sBreakDeadTimeConfig.BreakAFMode = TIM_BREAK_AFMODE_INPUT;
-  sBreakDeadTimeConfig.Break2State = TIM_BREAK2_DISABLE;
-  sBreakDeadTimeConfig.Break2Polarity = TIM_BREAK2POLARITY_HIGH;
-  sBreakDeadTimeConfig.Break2Filter = 0;
-  sBreakDeadTimeConfig.Break2AFMode = TIM_BREAK_AFMODE_INPUT;
-  sBreakDeadTimeConfig.AutomaticOutput = TIM_AUTOMATICOUTPUT_DISABLE;
-  if (HAL_TIMEx_ConfigBreakDeadTime(&htim1, &sBreakDeadTimeConfig) != HAL_OK)
+  sConfigOC.OCMode = TIM_OCMODE_PWM2;
+  sConfigOC.Pulse = (htim1.Init.Period + 1) / 2;
+  if (HAL_TIM_OC_ConfigChannel(&htim1, &sConfigOC, TIM_CHANNEL_4) != HAL_OK) // 通道4用于ADC触发
+  {
+    Error_Handler();
+  }
+  sBreakDeadTimeConfig.OffStateRunMode = TIM_OSSR_DISABLE; // 运行时关闭输出失能
+  sBreakDeadTimeConfig.OffStateIDLEMode = TIM_OSSI_DISABLE; // 空闲时关闭输出失能
+  sBreakDeadTimeConfig.LockLevel = TIM_LOCKLEVEL_OFF; // 不加锁
+  sBreakDeadTimeConfig.DeadTime = 0; // 死区时间为0
+  sBreakDeadTimeConfig.BreakState = TIM_BREAK_DISABLE; // 不使能刹车功能
+  sBreakDeadTimeConfig.BreakPolarity = TIM_BREAKPOLARITY_HIGH; // 刹车电平为高
+  sBreakDeadTimeConfig.BreakFilter = 0; // 刹车滤波为0
+  sBreakDeadTimeConfig.BreakAFMode = TIM_BREAK_AFMODE_INPUT; // 刹车模式输入
+  sBreakDeadTimeConfig.Break2State = TIM_BREAK2_DISABLE; // 不使能刹车2
+  sBreakDeadTimeConfig.Break2Polarity = TIM_BREAK2POLARITY_HIGH; // 刹车2极性高
+  sBreakDeadTimeConfig.Break2Filter = 0; // 刹车2滤波为0
+  sBreakDeadTimeConfig.Break2AFMode = TIM_BREAK_AFMODE_INPUT; // 刹车2模式输入
+  sBreakDeadTimeConfig.AutomaticOutput = TIM_AUTOMATICOUTPUT_DISABLE; // 禁止自动输出
+  if (HAL_TIMEx_ConfigBreakDeadTime(&htim1, &sBreakDeadTimeConfig) != HAL_OK) // 死区与刹车配置
   {
     Error_Handler();
   }
   /* USER CODE BEGIN TIM1_Init 2 */
 
   /* USER CODE END TIM1_Init 2 */
-  HAL_TIM_MspPostInit(&htim1);
+  HAL_TIM_MspPostInit(&htim1); // GPIO复用及输出管脚配置
 
 }
 
-/* TIM3 init function */
+/* TIM3 初始化函数 */
 void MX_TIM3_Init(void)
 {
   /* USER CODE BEGIN TIM3_Init 0 */
 
   /* USER CODE END TIM3_Init 0 */
 
-  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
-  TIM_MasterConfigTypeDef sMasterConfig = {0};
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0}; // 时钟源配置结构体
+  TIM_MasterConfigTypeDef sMasterConfig = {0}; // 主模式配置结构体
 
   /* USER CODE BEGIN TIM3_Init 1 */
 
   /* USER CODE END TIM3_Init 1 */
-  htim3.Instance = TIM3;
-  htim3.Init.Prescaler = 63; // 64MHz/64 = 1MHz (1us per count)
-  htim3.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim3.Init.Period = 0xFFFFFFFF; // Max 32-bit count
-  htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-  htim3.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
-  if (HAL_TIM_Base_Init(&htim3) != HAL_OK)
+  htim3.Instance = TIM3; // 选择定时器3
+  htim3.Init.Prescaler = 63; // 64MHz/64=1MHz(1us一次计数)       // 64MHz/64 = 1MHz (1us per count)
+  htim3.Init.CounterMode = TIM_COUNTERMODE_UP; // 向上计数模式
+  htim3.Init.Period = 0xFFFFFFFF; // 最大32位计数            // Max 32-bit count
+  htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1; // 时钟不分频
+  htim3.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE; // 不使用预装载
+  if (HAL_TIM_Base_Init(&htim3) != HAL_OK) // 基本定时器初始化
   {
     Error_Handler();
   }
-  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
-  if (HAL_TIM_ConfigClockSource(&htim3, &sClockSourceConfig) != HAL_OK)
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL; // 定时器内部时钟
+  if (HAL_TIM_ConfigClockSource(&htim3, &sClockSourceConfig) != HAL_OK) // 时钟源配置
   {
     Error_Handler();
   }
-  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
-  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
-  if (HAL_TIMEx_MasterConfigSynchronization(&htim3, &sMasterConfig) != HAL_OK)
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET; // 主模式触发输出选择
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE; // 禁止主从模式
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim3, &sMasterConfig) != HAL_OK) // 主从同步配置
   {
     Error_Handler();
   }
@@ -283,6 +289,63 @@ uint32_t get_elapsed_microseconds(uint32_t start_timestamp)
         // Handle timer overflow (TIM3 is 16-bit)
         return ((0x10000UL - start_timestamp) + now);
     }
+}
+
+/**
+ * @brief  Set PWM duty cycle for PA8 (TIM1_CH1)
+ * @param  duty_cycle: Duty cycle in percentage (0-100)
+ * @retval None
+ */
+void TIM1_CH1_SetDutyCycle(uint32_t duty_cycle)
+{
+    __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, duty_cycle);
+}
+
+/**
+ * @brief  Set PWM duty cycle for PB3 (TIM1_CH2)
+ * @param  duty_cycle: Duty cycle in percentage (0-100)
+ * @retval None
+ */
+void TIM1_CH2_SetDutyCycle(uint32_t duty_cycle)
+{
+    __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, duty_cycle);
+}
+
+/**
+ * @brief  Set PWM duty cycle for PB6 (TIM1_CH3)
+ * @param  duty_cycle: Duty cycle in percentage (0-100)
+ * @retval None
+ */
+void TIM1_CH3_SetDutyCycle(uint32_t duty_cycle)
+{
+    __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, duty_cycle);
+}
+
+/**
+ * @brief  Start PWM on all three channels
+ * @retval None
+ */
+void TIM1_StartPWM(void)
+{
+    HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
+    HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_2);
+    HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_3);
+    HAL_TIM_OC_Start(&htim1, TIM_CHANNEL_4);
+		TIM1_CH1_SetDutyCycle(0);
+		TIM1_CH2_SetDutyCycle(0);
+		TIM1_CH3_SetDutyCycle(0);
+}
+
+/**
+ * @brief  Stop PWM on all three channels
+ * @retval None
+ */
+void TIM1_StopPWM(void)
+{
+    HAL_TIM_PWM_Stop(&htim1, TIM_CHANNEL_1);
+    HAL_TIM_PWM_Stop(&htim1, TIM_CHANNEL_2);
+    HAL_TIM_PWM_Stop(&htim1, TIM_CHANNEL_3);
+    HAL_TIM_OC_Stop(&htim1, TIM_CHANNEL_4);
 }
 
 /* USER CODE END 1 */

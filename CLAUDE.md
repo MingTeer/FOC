@@ -58,6 +58,17 @@ Drivers/           # STM32 HAL and CMSIS libraries
 - Resolution: 12-bit (4096 steps per rotation)
 - Purpose: Rotor position feedback for FOC
 
+**FOC Algorithm Implementation (CODE/FOC.c, CODE/FOC.h):**
+- `FOC_Init()`: Initialize FOC with power supply and voltage limits
+- `setPhaseVoltage()`: Set 3-phase voltages using Space Vector PWM
+- `electricAngle_position()`: Convert mechanical angle to electrical angle
+- `cal_Iq_Id()`: Clarke and Park transformations for current control
+
+**Fast Math Library (CODE/fast_math.c, CODE/fast_math.h):**
+- `MCM_Trig_Functions()`: Fast sine/cosine calculation using Q1.15 fixed-point format
+- Optimized for real-time FOC calculations without FPU dependency
+- Returns `Trig_Components` struct with sin/cos values
+
 **Timing Infrastructure (tim.c):**
 - `microsecondTimer_Init()`: Initialize TIM3 for 1µs resolution timing
 - `get_microsecond_timestamp()`: Get current timestamp from TIM3 counter
@@ -77,14 +88,17 @@ Drivers/           # STM32 HAL and CMSIS libraries
 - Microsecond timing infrastructure for control loops
 - I2C communication with error handling
 - Debug output via USART1
+- Basic FOC algorithm structure with voltage control
+- Fast math library for trigonometric calculations
+- Space Vector PWM implementation framework
 
 **Pending FOC Components:**
-- ADC current sampling and scaling
-- Clarke/Park mathematical transformations
-- PI current and speed controllers
-- Space Vector PWM modulation
+- ADC current sampling and scaling integration
+- PI current and speed controllers implementation
 - Fixed-frequency interrupt-driven control loop
 - Safety systems (overcurrent, overvoltage protection)
+- Complete Clarke/Park transformation integration
+- Motor parameter identification and tuning
 
 ## Development Workflow
 
@@ -114,7 +128,9 @@ Drivers/           # STM32 HAL and CMSIS libraries
 ## Development Standards
 
 - **Coding Style:** 4-space indentation, UTF-8 encoding, HAL naming conventions
-- **Commit Format:** Imperative subject lines under 72 characters (e.g., "Implement current controller")
+- **Comment Language:** 所有代码注释必须使用中文
+- **Communication:** 与用户交流时使用中文回复
+- **Commit Format:** Imperative subject lines under 72 characters (e.g., "实现电流控制器")
 - **Testing:** Validate on hardware with current-limited supply during development
 - **Documentation:** Include telemetry captures and parameter tuning logs in commits
 
