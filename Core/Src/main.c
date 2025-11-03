@@ -28,6 +28,7 @@
 #include "current_sensor.h"
 #include "FOC.h"
 #include "dma.h"
+#include "pid.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 
@@ -45,7 +46,7 @@
 
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
-
+PID_Controller pid;
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
@@ -106,21 +107,27 @@ int main(void)
   HAL_Delay(1000);
   ADC_Start_DMA();
   Current_Sensor_Calibrate_Zero();
-  FOC_Init(12.0f, 3.0f);  // 启动ADC DMA，在所有外设初始化完成后进行
+  FOC_Init(12.0f, 6.0f);  // 启动ADC DMA，在所有外设初始化完成后进行
   /* USER CODE END 2 */
 	float currents[2];
 	float Iq = 0.0f;
-	float Id = 0.0f;
+	float Iq_filtered = 0.0f;
+	const float iq_filter_alpha = 0.1f; /* 低通滤波系数，越小滤波越强 */
+	PID_Init(&pid, 50.0f, 4.0f, 0.0f, 6.0f, 0.2f);
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
     /* USER CODE END WHILE */
-    float radian = electricAngle_position();
+    float radian = -electricAngle_position();
     Get_Phase_Currents(currents);
-    setPhaseVoltage(1, 0, radian);
-    cal_Iq_Id(currents[0], currents[1], radian, &Iq, &Id);
-    printf("%f,%f,%f,%f\n", Iq,Id,currents[0],currents[1]);
+    // setPhaseVoltage(6, 0, radian);
+    Iq = cal_Iq_Id(currents[0], currents[1], radian);
+    Iq_filtered += iq_filter_alpha * (Iq - Iq_filtered);
+    float output = PID_Calculate(&pid, 0.2f, Iq_filtered);
+    setPhaseVoltage(output, 0, radian);
+
+    printf("%f\n",Iq_filtered);
     /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */

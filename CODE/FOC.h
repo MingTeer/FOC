@@ -84,7 +84,7 @@ float normallizeDegree(float angle);
  * @param  iq_out     Output pointer for q-axis current
  * @param  id_out     Output pointer for d-axis current
  */
-void cal_Iq_Id(float current_a, float current_b, float angle_el, float *iq_out, float *id_out);
+float cal_Iq_Id(float current_a, float current_b, float angle_el);
 
 /**
  * @brief  相序自检：Ud>0 使磁场对齐 d 轴、Uq=0，无转矩抖动小

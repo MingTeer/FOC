@@ -13,15 +13,18 @@ This is an STM32G070CBT6 microcontroller project for FOC (Field Oriented Control
 - Target output: `MDK-ARM/FOC_TESTV1.0/FOC_TESTV1.0.hex` and `.axf`
 
 **Build Commands:**
-- Open project in Keil µVision MDK-ARM
-- Build: Project → Build Target (F7)
-- Clean: Project → Clean Targets
-- Flash: Flash → Download (F8)
-
-**Alternative Development:**
-- **STM32CubeIDE:** File → Open Projects from File System, point at `FOC_TESTV1.0.ioc`
+- **Keil µVision MDK-ARM:** 打开 `MDK-ARM/FOC_TESTV1.0.uvprojx`
+  - Build: Project → Build Target (F7)
+  - Clean: Project → Clean Targets
+  - Flash: Flash → Download (F8)
+- **STM32CubeIDE:** File → Open Projects from File System → 选择 `FOC_TESTV1.0.ioc`
 - **CLI Flashing:** `STM32_Programmer_CLI -c port=SWD -d MDK-ARM/FOC_TESTV1.0/FOC_TESTV1.0.hex`
-- **VS Code:** Update `.vscode/launch.json` paths for local environment
+- **VS Code:** 配置 `.vscode/launch.json` 路径进行本地开发
+
+**Build Outputs:**
+- `MDK-ARM/FOC_TESTV1.0/FOC_TESTV1.0.hex` (用于烧录)
+- `MDK-ARM/FOC_TESTV1.0/FOC_TESTV1.0.axf` (调试信息)
+- `MDK-ARM/FOC_TESTV1.0/FOC_TESTV1.map` (内存映射)
 
 **Configuration:**
 - MCU: STM32G070CBT6 (Cortex-M0+, 128KB Flash, 36KB RAM)
@@ -76,29 +79,36 @@ Drivers/           # STM32 HAL and CMSIS libraries
 - **Note:** TIM3 configured as 16-bit counter, handles overflow at 65536µs
 
 **I2C Communication Helpers (i2c.c):**
-- `I2C_ScanDevices()`: Scan I2C bus for connected devices
-- `I2C1_ReadRegister_Normal()`: Safe register read operations
-- `I2C_IsDeviceConnected()`: Device presence detection
+- `I2C_ScanDevices()`: 扫描I2C总线连接的设备
+- `I2C1_ReadRegister_Normal()`: 安全的寄存器读取操作
+- `I2C_IsDeviceConnected()`: 设备存在检测
+
+**PID Controller (CODE/pid.c, CODE/pid.h):**
+- `PID_Init()`: 初始化PID控制器参数
+- `PID_Calculate()`: 位置式PID计算，包含输出限幅
+- 支持电流环、速度环和位置环控制
+- 结构体包含：kp/ki/kd系数、目标值、积分累积、输出限幅
 
 ### FOC Implementation Status
 
 **Currently Implemented:**
-- Hardware peripheral configuration and initialization
-- AS5600 magnetic encoder integration and angle reading
-- Microsecond timing infrastructure for control loops
-- I2C communication with error handling
-- Debug output via USART1
-- Basic FOC algorithm structure with voltage control
-- Fast math library for trigonometric calculations
-- Space Vector PWM implementation framework
+- 硬件外设配置和初始化
+- AS5600磁编码器集成和角度读取
+- 微秒级定时基础设施用于控制循环
+- I2C通信及错误处理
+- USART1调试输出
+- 基础FOC算法结构和电压控制
+- 快速数学库用于三角函数计算
+- 空间矢量PWM实现框架
+- PID控制器实现（位置式，支持输出限幅）
 
 **Pending FOC Components:**
-- ADC current sampling and scaling integration
-- PI current and speed controllers implementation
-- Fixed-frequency interrupt-driven control loop
-- Safety systems (overcurrent, overvoltage protection)
-- Complete Clarke/Park transformation integration
-- Motor parameter identification and tuning
+- ADC电流采样和标定集成
+- 使用PID控制器的电流环和速度环实现
+- 固定频率中断驱动控制循环
+- 安全系统（过流、过压保护）
+- 完整的Clarke/Park变换集成
+- 电机参数识别和调谐
 
 ## Development Workflow
 

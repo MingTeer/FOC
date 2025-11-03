@@ -39,6 +39,7 @@
 "foc_testv1.0\fast_math.o"
 "foc_testv1.0\foc.o"
 "foc_testv1.0\current_sensor.o"
+"foc_testv1.0\pid.o"
 --library_type=microlib --strict --scatter "FOC_TESTV1.0\FOC_TESTV1.sct"
 --summary_stderr --info summarysizes --map --load_addr_map_info --xref --callgraph --symbols
 --info sizes --info totals --info unused --info veneers

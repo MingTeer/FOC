@@ -97,13 +97,34 @@ float electricAngle_position(void)
  */
 void Check_Sensor(void)
 {
-    // 1. 外加足够电压强制转子到达已知位置
-    setPhaseVoltage(3, 0, 3*PI/2);
-    HAL_Delay(2000);
-    zero_electric_angle = electricAngle_position();
-    setPhaseVoltage(0, 0, 3*PI/2);
-    HAL_Delay(500);
+    const float align_voltage = limit_voltage * 0.5f;
+    const uint32_t settle_delay_ms = 800;
+    const uint16_t sample_count = 64;
+
+    setPhaseVoltage(0.0f, align_voltage, 0.0f);
+    HAL_Delay(settle_delay_ms);
+
+    float sin_sum = 0.0f;
+    float cos_sum = 0.0f;
+    float last_angle = 0.0f;
+    for (uint16_t i = 0; i < sample_count; i++)
+    {
+        float mechanical_angle_deg = Get_absolute_angle();
+        float electrical_angle = mechanical_angle_deg / 360.0f * TWO_PI * pp;
+        sin_sum += sinf(electrical_angle);
+        cos_sum += cosf(electrical_angle);
+        last_angle = electrical_angle;
+        HAL_Delay(5);
+    }
+
+    float magnitude = sin_sum * sin_sum + cos_sum * cos_sum;
+    float average_angle = (magnitude > 1e-6f) ? atan2f(sin_sum, cos_sum) : last_angle;
+    zero_electric_angle = normallizeRadian(average_angle);
+
+    setPhaseVoltage(0.0f, 0.0f, 0.0f);
+    HAL_Delay(200);
 }
+
 
 /*
  * =================================================================================
@@ -161,8 +182,17 @@ void setPhaseVoltage(float Uq,float Ud,float angle_eletric)
     float cos_val = (float)components.hCos / 32768.0f;
 
     // 4. Park变换 (此处仅使用Uq分量)
-    float Ualpha = -Uq * sin_val;    // α轴电压
-    float Ubeta = Uq * cos_val;     // β轴电压
+    float Uout = sqrtf(Ud * Ud + Uq * Uq);
+    if (Uout > limit_voltage)
+    {
+        float scale = limit_voltage / Uout;
+        Ud *= scale;
+        Uq *= scale;
+    }
+
+    float Ualpha = Ud * cos_val - Uq * sin_val;
+    float Ubeta = Ud * sin_val + Uq * cos_val;
+
 
     // 5. Clarke变换: αβ -> 三相电压
     float Vdc_half = power_voltage * 0.5f;  // 直流母线电压一半
@@ -175,34 +205,33 @@ void setPhaseVoltage(float Uq,float Ud,float angle_eletric)
 }
 
 /**
- * @brief  Calculate dq-axis currents (Clarke + Park)
- * @param  current_a  Phase-A current (A)
- * @param  current_b  Phase-B current (A)
- * @param  angle_el   Electrical angle (rad)
- * @param  iq_out     Output pointer for q-axis current
- * @param  id_out     Output pointer for d-axis current
+ * @brief  计算q轴电流分量（Iq）
+ * @param  current_a  A相电流（单位：A）
+ * @param  current_b  B相电流（单位：A）
+ * @param  angle_el   电角度（单位：弧度，通常为实际转子电角度）
+ * @retval q轴电流分量 Iq（单位：A）
+ * @note   用于根据两相采样电流和SVPWM角度计算q轴电流
  */
-void cal_Iq_Id(float current_a, float current_b, float angle_el, float *iq_out, float *id_out)
+float cal_Iq_Id(float current_a, float current_b, float angle_el)
 {
-    float angle_norm = normallizeRadian(angle_el);
-
-    float st = sinf(angle_norm);
-    float ct = cosf(angle_norm);
-
     float I_alpha = current_a;
     float I_beta = _1_SQRT3 * current_a + _2_SQRT3 * current_b;
 
-    float I_q = I_beta * ct - I_alpha * st;
-    float I_d = I_alpha * ct + I_beta * st;
+    // 使用查表法求 sin, cos
+    float angle_norm = angle_el;
+    if (angle_norm >= PI)
+    {
+        angle_norm -= TWO_PI;
+    }
+    int16_t angle_q15 = (int16_t)(angle_norm * 32768.0f / PI);
 
-    if (iq_out != NULL)
-    {
-        *iq_out = I_q;
-    }
-    if (id_out != NULL)
-    {
-        *id_out = I_d;
-    }
+    Trig_Components components = MCM_Trig_Functions(angle_q15);
+    float st = (float)components.hSin / 32768.0f;
+    float ct = (float)components.hCos / 32768.0f;
+
+    float I_q = I_beta * ct - I_alpha * st;
+
+    return I_q;
 }
 
 /*

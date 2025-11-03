@@ -13,5 +13,5 @@ float Get_absolute_angle(void)
     HAL_StatusTypeDef status = I2C1_ReadRegister_Normal(dev_addr, 0x0C, data, 2, 10);  
     uint16_t angle_data = (data[0] << 8) | data[1];
     angle = (angle_data * 360.0f / 4096.0f);
-    return -angle;
+    return angle;
 }

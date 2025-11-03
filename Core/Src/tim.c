@@ -43,7 +43,7 @@ void MX_TIM1_Init(void)
 
   /* USER CODE END TIM1_Init 1 */
   htim1.Instance = TIM1; // 选择定时器1
-  htim1.Init.Prescaler = 7; // 预分频器为7，(8分频后10kHz@80MHz)
+  htim1.Init.Prescaler = 3; // 预分频器为7，(8分频后10kHz@80MHz)
   htim1.Init.CounterMode = TIM_COUNTERMODE_UP; // 向上计数模式
   htim1.Init.Period = 999; // 自动重装载值，PWM周期(1000计数，对应10kHz@8MHz)
   htim1.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1; // 时钟不分频
