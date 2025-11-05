@@ -40,14 +40,11 @@ extern TIM_HandleTypeDef htim3;
 /* USER CODE END Private defines */
 
 void MX_TIM1_Init(void);
-void MX_TIM3_Init(void);
+void MX_TIM3_Init(uint16_t xms);
 
 void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);
 
 /* USER CODE BEGIN Prototypes */
-void microsecondTimer_Init(void);
-uint32_t get_microsecond_timestamp(void);
-uint32_t get_elapsed_microseconds(uint32_t start_timestamp);
 
 void TIM1_CH1_SetDutyCycle(uint32_t duty_cycle);
 void TIM1_CH2_SetDutyCycle(uint32_t duty_cycle);

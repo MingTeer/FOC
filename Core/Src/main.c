@@ -29,6 +29,7 @@
 #include "FOC.h"
 #include "dma.h"
 #include "pid.h"
+#include <math.h>
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 
@@ -46,7 +47,9 @@
 
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
-PID_Controller pid;
+//PID_Controller pid;
+uint16_t RPM = 0;
+float radian = 0;
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
@@ -99,7 +102,7 @@ int main(void)
   MX_ADC1_Init();
   MX_I2C1_Init();
   MX_TIM1_Init();
-  microsecondTimer_Init();
+  MX_TIM3_Init(5);
   MX_SPI1_Init();
   MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
@@ -109,25 +112,15 @@ int main(void)
   Current_Sensor_Calibrate_Zero();
   FOC_Init(12.0f, 6.0f);  // 启动ADC DMA，在所有外设初始化完成后进行
   /* USER CODE END 2 */
-	float currents[2];
-	float Iq = 0.0f;
-	float Iq_filtered = 0.0f;
-	const float iq_filter_alpha = 0.1f; /* 低通滤波系数，越小滤波越强 */
-	PID_Init(&pid, 50.0f, 4.0f, 0.0f, 6.0f, 0.2f);
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
     /* USER CODE END WHILE */
-    float radian = -electricAngle_position();
-    Get_Phase_Currents(currents);
-    // setPhaseVoltage(6, 0, radian);
-    Iq = cal_Iq_Id(currents[0], currents[1], radian);
-    Iq_filtered += iq_filter_alpha * (Iq - Iq_filtered);
-    float output = PID_Calculate(&pid, 0.2f, Iq_filtered);
-    setPhaseVoltage(output, 0, radian);
 
-    printf("%f\n",Iq_filtered);
+    setPhaseVoltage(6, 0, radian);
+
+    printf("%d\n",RPM);
     /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */
@@ -179,6 +172,42 @@ void SystemClock_Config(void)
 }
 
 /* USER CODE BEGIN 4 */
+
+/**
+  * @brief  Period elapsed callback in non-blocking mode
+  * @param  htim: TIM handle
+  * @retval None
+  */
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+  if(htim->Instance == TIM3)
+  {
+		radian = -electricAngle_position();
+    static float last_angle = 0;
+    float angle_diff = 0;
+
+    // 获取当前角度
+    float current_angle = angle;
+
+    // 计算角度差值，处理0-360度跳变
+    angle_diff = current_angle - last_angle;
+    if(angle_diff > 180) {
+        angle_diff -= 360;  // 正向跳变，减去360度
+    } else if(angle_diff < -180) {
+        angle_diff += 360;  // 反向跳变，加上360度
+    }
+
+    // 计算RPM (角度差/360 * 采样频率 * 60)
+    // 采样频率为1000Hz（1ms中断）
+    // 一阶滤波计算RPM（前一值占比95%，新采样占比5%）
+    static float rpm_filtered = 0;
+    float rpm_raw = angle_diff / 360.0f * 2000.0f * 60.0f;
+    rpm_filtered = 0.9f * rpm_filtered + 0.1f * rpm_raw;
+    RPM = rpm_filtered;
+
+    last_angle = current_angle;
+  }
+}
 
 /* USER CODE END 4 */
 

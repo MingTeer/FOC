@@ -40,7 +40,7 @@ void MX_TIM1_Init(void)
   TIM_BreakDeadTimeConfigTypeDef sBreakDeadTimeConfig = {0}; // 死区和断保护结构体
 
   /* USER CODE BEGIN TIM1_Init 1 */
-
+  __HAL_RCC_TIM1_CLK_ENABLE(); // 确保配置前打开TIM1时钟
   /* USER CODE END TIM1_Init 1 */
   htim1.Instance = TIM1; // 选择定时器1
   htim1.Init.Prescaler = 3; // 预分频器为7，(8分频后10kHz@80MHz)
@@ -110,7 +110,7 @@ void MX_TIM1_Init(void)
 }
 
 /* TIM3 初始化函数 */
-void MX_TIM3_Init(void)
+void MX_TIM3_Init(uint16_t xms)
 {
   /* USER CODE BEGIN TIM3_Init 0 */
 
@@ -125,7 +125,7 @@ void MX_TIM3_Init(void)
   htim3.Instance = TIM3; // 选择定时器3
   htim3.Init.Prescaler = 63; // 64MHz/64=1MHz(1us一次计数)       // 64MHz/64 = 1MHz (1us per count)
   htim3.Init.CounterMode = TIM_COUNTERMODE_UP; // 向上计数模式
-  htim3.Init.Period = 0xFFFFFFFF; // 最大32位计数            // Max 32-bit count
+  htim3.Init.Period = 100 * xms - 1; // 1000us中断周期，对应1kHz中断频率    // 1000us interrupt period for 1kHz interrupt frequency
   htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1; // 时钟不分频
   htim3.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE; // 不使用预装载
   if (HAL_TIM_Base_Init(&htim3) != HAL_OK) // 基本定时器初始化
@@ -143,6 +143,9 @@ void MX_TIM3_Init(void)
   {
     Error_Handler();
   }
+
+  // 启用TIM3更新中断
+  HAL_TIM_Base_Start_IT(&htim3);
   /* USER CODE BEGIN TIM3_Init 2 */
 
   /* USER CODE END TIM3_Init 2 */
@@ -158,27 +161,16 @@ void HAL_TIM_Base_MspInit(TIM_HandleTypeDef* tim_baseHandle)
   /* USER CODE END TIM3_MspInit 0 */
     /* TIM3 clock enable */
     __HAL_RCC_TIM3_CLK_ENABLE();
+
+    /* TIM3 interrupt Init */
+    HAL_NVIC_SetPriority(TIM3_IRQn, 0, 0); // 设置最高优先级
+    HAL_NVIC_EnableIRQ(TIM3_IRQn);         // 启用TIM3中断
   /* USER CODE BEGIN TIM3_MspInit 1 */
 
   /* USER CODE END TIM3_MspInit 1 */
   }
 }
 
-void HAL_TIM_OC_MspInit(TIM_HandleTypeDef* tim_ocHandle)
-{
-
-  if(tim_ocHandle->Instance==TIM1)
-  {
-  /* USER CODE BEGIN TIM1_MspInit 0 */
-
-  /* USER CODE END TIM1_MspInit 0 */
-    /* TIM1 clock enable */
-    __HAL_RCC_TIM1_CLK_ENABLE();
-  /* USER CODE BEGIN TIM1_MspInit 1 */
-
-  /* USER CODE END TIM1_MspInit 1 */
-  }
-}
 void HAL_TIM_MspPostInit(TIM_HandleTypeDef* timHandle)
 {
 
@@ -217,21 +209,6 @@ void HAL_TIM_MspPostInit(TIM_HandleTypeDef* timHandle)
 
 }
 
-void HAL_TIM_OC_MspDeInit(TIM_HandleTypeDef* tim_ocHandle)
-{
-
-  if(tim_ocHandle->Instance==TIM1)
-  {
-  /* USER CODE BEGIN TIM1_MspDeInit 0 */
-
-  /* USER CODE END TIM1_MspDeInit 0 */
-    /* Peripheral clock disable */
-    __HAL_RCC_TIM1_CLK_DISABLE();
-  /* USER CODE BEGIN TIM1_MspDeInit 1 */
-
-  /* USER CODE END TIM1_MspDeInit 1 */
-  }
-}
 
 void HAL_TIM_Base_MspDeInit(TIM_HandleTypeDef* tim_baseHandle)
 {
@@ -251,45 +228,6 @@ void HAL_TIM_Base_MspDeInit(TIM_HandleTypeDef* tim_baseHandle)
 
 /* USER CODE BEGIN 1 */
 
-/**
- * @brief  Initialize microsecond timer (TIM3)
- * @param  None
- * @retval None
- */
-void microsecondTimer_Init(void)
-{
-    MX_TIM3_Init();
-    HAL_TIM_Base_Start(&htim3);
-}
-
-/**
- * @brief  Get current microsecond timestamp
- * @param  None
- * @retval Current timestamp in microseconds
- */
-uint32_t get_microsecond_timestamp(void)
-{
-    return __HAL_TIM_GET_COUNTER(&htim3);
-}
-
-/**
- * @brief  Calculate elapsed microseconds from a start timestamp
- * @param  start_timestamp: Starting timestamp value
- * @retval Elapsed microseconds since start timestamp
- */
-uint32_t get_elapsed_microseconds(uint32_t start_timestamp)
-{
-    uint32_t now = __HAL_TIM_GET_COUNTER(&htim3);
-    if (now >= start_timestamp)
-    {
-        return (now - start_timestamp);
-    }
-    else
-    {
-        // Handle timer overflow (TIM3 is 16-bit)
-        return ((0x10000UL - start_timestamp) + now);
-    }
-}
 
 /**
  * @brief  Set PWM duty cycle for PA8 (TIM1_CH1)
