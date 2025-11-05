@@ -47,9 +47,25 @@
 
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
-//PID_Controller pid;
-uint16_t RPM = 0;
-float radian = 0;
+typedef struct
+{
+  float iq;
+  float radian;
+  uint16_t rpm;
+} motor_state_t;
+
+static volatile motor_state_t motor_state_isr = {0};
+
+static motor_state_t motor_state_snapshot(void)
+{
+  // Copy ISR-managed state while interrupts are masked to keep fields coherent
+  motor_state_t snapshot;
+  uint32_t primask = __get_PRIMASK();
+  __disable_irq();
+  snapshot = motor_state_isr;
+  __set_PRIMASK(primask);
+  return snapshot;
+}
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
@@ -102,7 +118,6 @@ int main(void)
   MX_ADC1_Init();
   MX_I2C1_Init();
   MX_TIM1_Init();
-  MX_TIM3_Init(5);
   MX_SPI1_Init();
   MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
@@ -110,7 +125,9 @@ int main(void)
   HAL_Delay(1000);
   ADC_Start_DMA();
   Current_Sensor_Calibrate_Zero();
-  FOC_Init(12.0f, 6.0f);  // 启动ADC DMA，在所有外设初始化完成后进行
+  FOC_Init(12.0f, 6.0f);
+	MX_TIM3_Init(5);
+	MX_TIM6_Init(500);
   /* USER CODE END 2 */
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
@@ -118,9 +135,8 @@ int main(void)
   {
     /* USER CODE END WHILE */
 
-    setPhaseVoltage(6, 0, radian);
-
-    printf("%d\n",RPM);
+    motor_state_t state = motor_state_snapshot();
+    printf("%f,%d\n", state.iq,state.rpm);
     /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */
@@ -180,9 +196,22 @@ void SystemClock_Config(void)
   */
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
-  if(htim->Instance == TIM3)
+  if(htim->Instance == TIM6)
   {
-		radian = -electricAngle_position();
+    // TIM6微秒中断处理程序 - 用户自定义功能
+    /* USER CODE BEGIN TIM6_IRQ */
+    float electrical_angle = motor_state_isr.radian;
+    float current_I[2] = {0,0};
+    Get_Phase_Currents(current_I);
+    float iq_value = cal_Iq_Id(current_I[0],current_I[1],electrical_angle) * 0.1 + motor_state_isr.iq * 0.9;
+    motor_state_isr.iq = iq_value;
+    setPhaseVoltage(3, 0, electrical_angle);
+    /* USER CODE END TIM6_IRQ */
+  }
+  else if(htim->Instance == TIM3)
+  {
+    float radian_value = -electricAngle_position();
+    motor_state_isr.radian = radian_value;
     static float last_angle = 0;
     float angle_diff = 0;
 
@@ -203,7 +232,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
     static float rpm_filtered = 0;
     float rpm_raw = angle_diff / 360.0f * 2000.0f * 60.0f;
     rpm_filtered = 0.9f * rpm_filtered + 0.1f * rpm_raw;
-    RPM = rpm_filtered;
+    motor_state_isr.rpm = (uint16_t)rpm_filtered;
 
     last_angle = current_angle;
   }

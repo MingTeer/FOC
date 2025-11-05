@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is an STM32G070CBT6 microcontroller project for FOC (Field Oriented Control) motor control implementation. The project is currently in v1.0 testing phase with basic peripheral configuration and AS5600 magnetic encoder integration.
+This is an STM32G070CBT6 microcontroller project for FOC (Field Oriented Control) motor control implementation. The project is currently in v1.1 testing phase with complete peripheral configuration, AS5600 magnetic encoder integration, current sensing, and basic FOC algorithm implementation.
 
 ## Build System
 
@@ -19,7 +19,6 @@ This is an STM32G070CBT6 microcontroller project for FOC (Field Oriented Control
   - Flash: Flash → Download (F8)
 - **STM32CubeIDE:** File → Open Projects from File System → 选择 `FOC_TESTV1.0.ioc`
 - **CLI Flashing:** `STM32_Programmer_CLI -c port=SWD -d MDK-ARM/FOC_TESTV1.0/FOC_TESTV1.0.hex`
-- **VS Code:** 配置 `.vscode/launch.json` 路径进行本地开发
 
 **Build Outputs:**
 - `MDK-ARM/FOC_TESTV1.0/FOC_TESTV1.0.hex` (用于烧录)
@@ -38,7 +37,12 @@ This is an STM32G070CBT6 microcontroller project for FOC (Field Oriented Control
 Core/
 ├── Inc/           # Header files for peripherals and application
 ├── Src/           # Implementation files
-CODE/              # Custom sensor libraries (AS5600 magnetic encoder)
+CODE/              # Custom FOC algorithm and sensor libraries
+├── AS5600.c/.h    # AS5600 magnetic encoder driver
+├── FOC.c/.h       # FOC algorithm implementation
+├── fast_math.c/.h # Fast math library with Q1.15 fixed-point
+├── pid.c/.h       # PID controller implementation
+└── current_sensor.c/.h # Current sensing and processing
 MDK-ARM/           # Keil project files and build outputs
 Drivers/           # STM32 HAL and CMSIS libraries
 ```
@@ -89,6 +93,12 @@ Drivers/           # STM32 HAL and CMSIS libraries
 - 支持电流环、速度环和位置环控制
 - 结构体包含：kp/ki/kd系数、目标值、积分累积、输出限幅
 
+**Current Sensor (CODE/current_sensor.c, CODE/current_sensor.h):**
+- `Current_Sensor_Calibrate_Zero()`: ADC零漂校准，采样1000次取平均值
+- `Get_Phase_Currents()`: 获取A、B两相电流值，自动减去零漂偏移
+- 支持双相电流采样，使用DMA缓冲区提高效率
+- 电压到电流转换，包含参考电压和ADC分辨率参数
+
 ### FOC Implementation Status
 
 **Currently Implemented:**
@@ -101,14 +111,17 @@ Drivers/           # STM32 HAL and CMSIS libraries
 - 快速数学库用于三角函数计算
 - 空间矢量PWM实现框架
 - PID控制器实现（位置式，支持输出限幅）
+- 双相电流采样和零漂校准
+- Clarke和Park变换电流计算 (cal_Iq_Id)
+- 力矩控制和速度合成算法
 
 **Pending FOC Components:**
-- ADC电流采样和标定集成
-- 使用PID控制器的电流环和速度环实现
 - 固定频率中断驱动控制循环
+- 基于PID的闭环控制实现（电流环、速度环）
 - 安全系统（过流、过压保护）
-- 完整的Clarke/Park变换集成
+- 空间矢量PWM调制优化
 - 电机参数识别和调谐
+- 第三相电流计算（使用基尔霍夫定律）
 
 ## Development Workflow
 
