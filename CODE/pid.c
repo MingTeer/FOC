@@ -38,13 +38,12 @@ void PID_Init(PID_Controller *pid, float kp, float ki, float kd, float max, floa
 /**
  * @brief 增量式PID计算
  * @param pid PID控制器结构体指针
- * @param target 目标值
  * @param feedback 反馈值
  * @return PID输出值
  */
-float PID_Calculate(PID_Controller *pid, float target, float feedback)
+float PID_Calculate(PID_Controller *pid, float feedback)
 {
-    float error = target - feedback;
+    float error = pid->target - feedback;
 
     // 计算误差变化
     float delta_error = error - pid->last_error;

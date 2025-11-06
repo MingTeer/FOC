@@ -46,11 +46,10 @@ void PID_Init(PID_Controller *pid, float kp, float ki, float kd, float max, floa
 /**
  * @brief 位置式PID计算
  * @param pid PID控制器结构体指针
- * @param target 目标值
  * @param feedback 反馈值
  * @return PID输出值
  */
-float PID_Calculate(PID_Controller *pid, float target, float feedback);
+float PID_Calculate(PID_Controller *pid, float feedback);
 
 #ifdef __cplusplus
 }

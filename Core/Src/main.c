@@ -51,14 +51,13 @@ typedef struct
 {
   float iq;
   float radian;
-  uint16_t rpm;
+  int16_t rpm;    // 改为有符号整数，支持正反转方向（正值正转，负值反转）
 } motor_state_t;
 
 static volatile motor_state_t motor_state_isr = {0};
 
 static motor_state_t motor_state_snapshot(void)
 {
-  // Copy ISR-managed state while interrupts are masked to keep fields coherent
   motor_state_t snapshot;
   uint32_t primask = __get_PRIMASK();
   __disable_irq();
@@ -77,7 +76,8 @@ static motor_state_t motor_state_snapshot(void)
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 /* USER CODE BEGIN PFP */
-
+PID_Controller PID_Speed;
+PID_Controller PID_I;
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -129,12 +129,13 @@ int main(void)
 	MX_TIM3_Init(5);
 	MX_TIM6_Init(500);
   /* USER CODE END 2 */
+  PID_Init(&PID_Speed,0.001,0.0001,0,6.0f,500);
+  PID_Init(&PID_I,20,2,0,6.0f,0.1f);
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
     /* USER CODE END WHILE */
-
     motor_state_t state = motor_state_snapshot();
     printf("%f,%d\n", state.iq,state.rpm);
     /* USER CODE BEGIN 3 */
@@ -205,7 +206,8 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
     Get_Phase_Currents(current_I);
     float iq_value = cal_Iq_Id(current_I[0],current_I[1],electrical_angle) * 0.1 + motor_state_isr.iq * 0.9;
     motor_state_isr.iq = iq_value;
-    setPhaseVoltage(3, 0, electrical_angle);
+    float u = PID_Calculate(&PID_I,motor_state_isr.iq);
+    setPhaseVoltage(u, 0, motor_state_isr.radian);
     /* USER CODE END TIM6_IRQ */
   }
   else if(htim->Instance == TIM3)
@@ -213,28 +215,43 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
     float radian_value = -electricAngle_position();
     motor_state_isr.radian = radian_value;
     static float last_angle = 0;
-    float angle_diff = 0;
+    static uint8_t angle_initialized = 0;
+    static float rpm_filtered = 0;
 
     // 获取当前角度
     float current_angle = angle;
 
-    // 计算角度差值，处理0-360度跳变
-    angle_diff = current_angle - last_angle;
-    if(angle_diff > 180) {
-        angle_diff -= 360;  // 正向跳变，减去360度
-    } else if(angle_diff < -180) {
-        angle_diff += 360;  // 反向跳变，加上360度
+    if(!angle_initialized)
+    {
+      last_angle = current_angle;
+      angle_initialized = 1;
+      motor_state_isr.rpm = 0;
     }
+    else
+    {
+      float angle_diff = current_angle - last_angle;
 
-    // 计算RPM (角度差/360 * 采样频率 * 60)
-    // 采样频率为1000Hz（1ms中断）
-    // 一阶滤波计算RPM（前一值占比95%，新采样占比5%）
-    static float rpm_filtered = 0;
-    float rpm_raw = angle_diff / 360.0f * 2000.0f * 60.0f;
-    rpm_filtered = 0.9f * rpm_filtered + 0.1f * rpm_raw;
-    motor_state_isr.rpm = (uint16_t)rpm_filtered;
+      // 计算角度差值，处理0-360度跳变
+      if(angle_diff > 180) {
+          angle_diff -= 360;  // 正向跳变，减去360度
+      } else if(angle_diff < -180) {
+          angle_diff += 360;  // 反向跳变，加上360度
+      }
 
-    last_angle = current_angle;
+      // 根据角度差值符号确定旋转方向并计算转速
+      float rpm_raw = angle_diff / 360.0f * 2000.0f * 60.0f;  // 2kHz采样率, 转换为rpm
+
+      // 低通滤波器平滑转速输出
+      rpm_filtered = 0.9f * rpm_filtered + 0.1f * rpm_raw;
+
+      // 存储带方向的转速（正值表示正转，负值表示反转）
+      motor_state_isr.rpm = (int16_t)rpm_filtered;
+
+      // float u = -PID_Calculate(&PID_Speed,motor_state_isr.rpm);
+      // setPhaseVoltage(u, 0, motor_state_isr.radian);
+
+      last_angle = current_angle;
+    }
   }
 }
 
