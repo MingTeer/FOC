@@ -149,9 +149,9 @@ void HAL_I2C_MspDeInit(I2C_HandleTypeDef* i2cHandle)
 
 /**
  * @brief  I2C写函数（正常模式）
- * @param  DevAddress: 目标设备地址
- * @param  pData: 待发送数据缓冲区指针
- * @param  Size: 发送数据长度
+ * @param  DevAddress: 设备地址
+ * @param  pData: 要写入的数据缓冲区指针
+ * @param  Size: 要发送的数据长度
  * @param  Timeout: 超时时间（ms）
  * @retval HAL状态
  */
@@ -166,9 +166,9 @@ HAL_StatusTypeDef I2C1_Write_Normal(uint16_t DevAddress, uint8_t *pData, uint16_
 
 /**
  * @brief  I2C读函数（正常模式）
- * @param  DevAddress: 目标设备地址
+ * @param  DevAddress: 设备地址
  * @param  pData: 数据缓冲区指针
- * @param  Size: 接收数据长度
+ * @param  Size: 数据长度
  * @param  Timeout: 超时时间（ms）
  * @retval HAL状态
  */
@@ -176,14 +176,14 @@ HAL_StatusTypeDef I2C1_Read_Normal(uint16_t DevAddress, uint8_t *pData, uint16_t
 {
     HAL_StatusTypeDef status;
 
-    // 启动正常模式接收
+    // 正常模式接收
     status = HAL_I2C_Master_Receive(&hi2c1, DevAddress, pData, Size, Timeout);
     return status;
 }
 
 /**
- * @brief  I2C寄存器读操作（先写寄存器地址再读，正常模式）
- * @param  DevAddress: 目标设备地址
+ * @brief  I2C读指定寄存器（正常模式）
+ * @param  DevAddress: 设备地址
  * @param  RegAddress: 寄存器地址
  * @param  pData: 数据缓冲区指针
  * @param  Size: 数据长度
@@ -194,7 +194,7 @@ HAL_StatusTypeDef I2C1_ReadRegister_Normal(uint8_t DevAddress, uint8_t RegAddres
 {
     HAL_StatusTypeDef status;
 
-    // 先使用正常模式发送寄存器地址
+    // 首先写入寄存器地址
     status = I2C1_Write_Normal(DevAddress, &RegAddress, 1, Timeout);
     if (status != HAL_OK)
     {

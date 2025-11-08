@@ -77,14 +77,17 @@ float electricAngle_position(void);
 float normallizeDegree(float angle);
 
 /**
- * @brief  Calculate dq-axis currents (Clarke + Park)
- * @param  current_a  Phase-A current (A)
- * @param  current_b  Phase-B current (A)
- * @param  angle_el   Electrical angle (rad)
- * @param  iq_out     Output pointer for q-axis current
- * @param  id_out     Output pointer for d-axis current
+ * @brief  计算q轴和d轴电流分量（Iq和Id）
+ * @param  current_a  A相电流（单位：A）
+ * @param  current_b  B相电流（单位：A）
+ * @param  angle_el   电角度（单位：弧度，通常为实际转子电角度）
+ * @param  iq_out     q轴电流分量输出指针（单位：A），可为NULL
+ * @param  id_out     d轴电流分量输出指针（单位：A），可为NULL
+ * @retval void
+ * @note   用于根据两相采样电流计算q轴和d轴电流，实现Clarke变换和Park变换
+ *         如果只需要其中一个值，可以将另一个指针设为NULL
  */
-float cal_Iq_Id(float current_a, float current_b, float angle_el);
+void cal_Iq_Id(float current_a, float current_b, float angle_el, float *iq_out, float *id_out);
 
 /**
  * @brief  相序自检：Ud>0 使磁场对齐 d 轴、Uq=0，无转矩抖动小

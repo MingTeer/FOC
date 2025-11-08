@@ -205,14 +205,16 @@ void setPhaseVoltage(float Uq,float Ud,float angle_eletric)
 }
 
 /**
- * @brief  计算q轴电流分量（Iq）
+ * @brief  计算q轴和d轴电流分量（Iq和Id）
  * @param  current_a  A相电流（单位：A）
  * @param  current_b  B相电流（单位：A）
  * @param  angle_el   电角度（单位：弧度，通常为实际转子电角度）
- * @retval q轴电流分量 Iq（单位：A）
- * @note   用于根据两相采样电流和SVPWM角度计算q轴电流
+ * @param  iq_out     q轴电流分量输出指针（单位：A）
+ * @param  id_out     d轴电流分量输出指针（单位：A）
+ * @retval void
+ * @note   用于根据两相采样电流计算q轴和d轴电流，实现Clarke变换和Park变换
  */
-float cal_Iq_Id(float current_a, float current_b, float angle_el)
+void cal_Iq_Id(float current_a, float current_b, float angle_el, float *iq_out, float *id_out)
 {
     float I_alpha = current_a;
     float I_beta = _1_SQRT3 * current_a + _2_SQRT3 * current_b;
@@ -229,9 +231,19 @@ float cal_Iq_Id(float current_a, float current_b, float angle_el)
     float st = (float)components.hSin / 32768.0f;
     float ct = (float)components.hCos / 32768.0f;
 
+    // Park变换：计算dq轴电流
     float I_q = I_beta * ct - I_alpha * st;
+    float I_d = I_alpha * ct + I_beta * st;
 
-    return I_q;
+    // 输出结果
+    if (iq_out != NULL)
+    {
+        *iq_out = I_q;
+    }
+    if (id_out != NULL)
+    {
+        *id_out = I_d;
+    }
 }
 
 /*
