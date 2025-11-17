@@ -161,4 +161,4 @@ coverage/
 # Configuration files should be included
 !*.ioc
 !*.txt
-!*.md
+FOC_OPTIMIZATION_PLAN.md

@@ -30,7 +30,7 @@ typedef struct {
     float integral;      /* 积分累计值 */
     float output_max;    /* 输出上限 */
     float output_min;    /* 输出下限 */
-} PID_Controller;
+} PID;
 
 /**
  * @brief 初始化PID控制器
@@ -41,7 +41,15 @@ typedef struct {
  * @param output_max 输出上限
  * @param output_min 输出下限
  */
-void PID_Init(PID_Controller *pid, float kp, float ki, float kd, float max, float target);
+void PID_Init(PID *pid, float kp, float ki, float kd, float max, float target);
+
+/**
+ * @brief 增量式PID计算
+ * @param pid PID控制器结构体指针
+ * @param feedback 反馈值
+ * @return PID输出值
+ */
+float Incremental_PID_Calculate(PID *pid, float feedback);
 
 /**
  * @brief 位置式PID计算
@@ -49,7 +57,7 @@ void PID_Init(PID_Controller *pid, float kp, float ki, float kd, float max, floa
  * @param feedback 反馈值
  * @return PID输出值
  */
-float PID_Calculate(PID_Controller *pid, float feedback);
+float Position_PID_Calculate(PID *pid, float feedback);
 
 #ifdef __cplusplus
 }

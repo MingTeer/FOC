@@ -70,9 +70,9 @@ static volatile motor_state_t motor_state_isr = {0};
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 /* USER CODE BEGIN PFP */
-PID_Controller PID_Speed;
-PID_Controller PID_I;
-PID_Controller PID_Id;
+PID PID_Speed;
+PID PID_I;
+PID PID_Id;
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -126,7 +126,8 @@ int main(void)
   Menu_Init();
   /* USER CODE END 2 */
   PID_Init(&PID_Speed,0.001,0.0001,0,6.0f,500);
-  PID_Init(&PID_I,20,2,0,6.0f,0.1f);
+  PID_Init(&PID_I,200,0.5,0,6.0f,0.3f);
+  PID_Init(&PID_Id,50,1,0,6.0f,0);
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
@@ -134,23 +135,8 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-    /* 处理菜单命令 */
-    Menu_Process();
-    
-    /* 根据选择的模式执行相应控制 */
-    if (Menu_IsModeSelected())
-    {
-      menu_mode_t mode = Menu_GetMode();
-      float target = Menu_GetTargetValue();
-      
-      /* 这里可以根据模式执行相应的控制逻辑 */
-      /* 例如：根据mode和target更新PID控制器的目标值 */
-      /* 根据mode和target更新PID控制器的目标值 */
-      (void)mode;  /* 避免未使用变量警告 */
-      (void)target; /* 避免未使用变量警告 */
-    }
-    
-    HAL_Delay(10);  /* 避免CPU占用过高 */
+    printf("%f,%f\n", motor_state_isr.iq,motor_state_isr.id);
+    HAL_Delay(100);
   }
   /* USER CODE END 3 */
 }
@@ -219,11 +205,11 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
     float id_temp = 0.0f;
     cal_Iq_Id(current_I[0], current_I[1], electrical_angle, &iq_temp, &id_temp);
     float iq_value = iq_temp * 0.1 + motor_state_isr.iq * 0.9;
-    float id_value = id_temp * 0.01 + motor_state_isr.id * 0.99;
+    float id_value = id_temp * 0.1 + motor_state_isr.id * 0.9;
     motor_state_isr.iq = iq_value;
     motor_state_isr.id = id_value;
-    float uq = PID_Calculate(&PID_I,motor_state_isr.iq);
-    float ud = PID_Calculate(&PID_Id,motor_state_isr.id);
+    float uq = Position_PID_Calculate(&PID_I,motor_state_isr.iq);
+    float ud = Position_PID_Calculate(&PID_Id,motor_state_isr.id);
     setPhaseVoltage(uq, ud, motor_state_isr.radian);
     /* USER CODE END TIM6_IRQ */
   }
@@ -264,7 +250,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
       // 存储带方向的转速（正表示正转，负表示反转）
       motor_state_isr.rpm = (int16_t)rpm_filtered;
 
-      // float u = -PID_Calculate(&PID_Speed,motor_state_isr.rpm);
+      // float u = -Incremental_PID_Calculate(&PID_Speed,motor_state_isr.rpm);
       // setPhaseVoltage(u, 0, motor_state_isr.radian);
 
       last_angle = current_angle;

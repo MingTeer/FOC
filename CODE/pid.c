@@ -10,7 +10,7 @@
 #include "pid.h"
 
 /**
- * @brief 初始化PID控制器
+ * @brief 初始化PID控制器（通用，支持增量式和位置式）
  * @param pid PID控制器结构体指针
  * @param kp 比例系数
  * @param ki 积分系数
@@ -18,7 +18,7 @@
  * @param output_max 输出上限
  * @param output_min 输出下限
  */
-void PID_Init(PID_Controller *pid, float kp, float ki, float kd, float max, float target)
+void PID_Init(PID *pid, float kp, float ki, float kd, float max, float target)
 {
     /* 设置PID参数 */
     pid->kp = kp;
@@ -41,7 +41,7 @@ void PID_Init(PID_Controller *pid, float kp, float ki, float kd, float max, floa
  * @param feedback 反馈值
  * @return PID输出值
  */
-float PID_Calculate(PID_Controller *pid, float feedback)
+float Incremental_PID_Calculate(PID *pid, float feedback)
 {
     float error = pid->target - feedback;
 
@@ -56,6 +56,46 @@ float PID_Calculate(PID_Controller *pid, float feedback)
 
     // 输出限制
     float output = delta_output;
+    if(output > pid->output_max) {
+        output = pid->output_max;
+    } else if(output < pid->output_min) {
+        output = pid->output_min;
+    }
+
+    pid->last_error = error;
+
+    return output;
+}
+
+/**
+ * @brief 位置式PID计算
+ * @param pid PID控制器结构体指针
+ * @param feedback 反馈值
+ * @return PID输出值
+ */
+float Position_PID_Calculate(PID *pid, float feedback)
+{
+    float error = pid->target - feedback;
+
+    // 积分项计算
+    pid->integral += error;
+
+    // 积分限幅
+    float integral_max = pid->output_max / pid->ki;
+    float integral_min = pid->output_min / pid->ki;
+    if(pid->integral > integral_max) {
+        pid->integral = integral_max;
+    } else if(pid->integral < integral_min) {
+        pid->integral = integral_min;
+    }
+
+    // 微分项计算
+    float derivative = error - pid->last_error;
+
+    // 位置式PID输出计算
+    float output = pid->kp * error + pid->ki * pid->integral + pid->kd * derivative;
+
+    // 输出限制
     if(output > pid->output_max) {
         output = pid->output_max;
     } else if(output < pid->output_min) {

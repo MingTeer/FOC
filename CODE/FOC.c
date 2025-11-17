@@ -166,11 +166,15 @@ void set_power_voltage(float ua,float ub,float uc)
  */
 void setPhaseVoltage(float Uq,float Ud,float angle_eletric)
 {
-    // 1. 角度归一化: 将[0, 2*PI)转换为Q1.15格式[-PI, PI)
+    // 1. 角度归一化: 将任意角度转换为[-PI, PI)范围
     float angle_norm = angle_eletric;
     if (angle_norm >= PI)
     {
         angle_norm -= TWO_PI;
+    }
+    else if (angle_norm < -PI)
+    {
+        angle_norm += TWO_PI;
     }
     int16_t angle_q15 = (int16_t)(angle_norm * 32768.0f / PI);
 
@@ -224,6 +228,10 @@ void cal_Iq_Id(float current_a, float current_b, float angle_el, float *iq_out, 
     if (angle_norm >= PI)
     {
         angle_norm -= TWO_PI;
+    }
+    else if (angle_norm < -PI)
+    {
+        angle_norm += TWO_PI;
     }
     int16_t angle_q15 = (int16_t)(angle_norm * 32768.0f / PI);
 
