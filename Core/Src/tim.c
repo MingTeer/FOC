@@ -139,7 +139,7 @@ void MX_TIM6_Init(uint16_t xus)
 }
 
 /* TIM3 初始化函数 */
-void MX_TIM3_Init(uint16_t xms)
+void MX_TIM3_Init(uint16_t xus)
 {
   /* USER CODE BEGIN TIM3_Init 0 */
 
@@ -152,9 +152,9 @@ void MX_TIM3_Init(uint16_t xms)
 
   /* USER CODE END TIM3_Init 1 */
   htim3.Instance = TIM3; // 选择定时器3
-  htim3.Init.Prescaler = 63; // 64MHz/64=1MHz(1us一次计数)       // 64MHz/64 = 1MHz (1us per count)
+  htim3.Init.Prescaler = 63; // 64MHz/64=1MHz(1us一次计数)
   htim3.Init.CounterMode = TIM_COUNTERMODE_UP; // 向上计数模式
-  htim3.Init.Period = 100 * xms - 1; // 1000us中断周期，对应1kHz中断频率    // 1000us interrupt period for 1kHz interrupt frequency
+  htim3.Init.Period = xus - 1; // xus微秒中断周期
   htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1; // 时钟不分频
   htim3.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE; // 不使用预装载
   if (HAL_TIM_Base_Init(&htim3) != HAL_OK) // 基本定时器初始化

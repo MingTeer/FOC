@@ -58,6 +58,7 @@ typedef struct
 } motor_state_t;
 
 static volatile motor_state_t motor_state_isr = {0};
+menu_mode_t current_control_mode = MENU_MODE_IDLE;  
 
 /* USER CODE END PM */
 
@@ -121,13 +122,13 @@ int main(void)
   ADC_Start_DMA();
   Current_Sensor_Calibrate_Zero();
   FOC_Init(12.0f, 6.0f);
-	MX_TIM3_Init(5);
+	MX_TIM3_Init(500);
 	MX_TIM6_Init(500);
   Menu_Init();
   /* USER CODE END 2 */
-  PID_Init(&PID_Speed,0.001,0.0001,0,6.0f,500);
-  PID_Init(&PID_I,200,0.5,0,6.0f,0.3f);
-  PID_Init(&PID_Id,50,1,0,6.0f,0);
+  PID_Init(&PID_Speed,0.5,0.1,0,1000,500);
+  PID_Init(&PID_I,40,1,20,6,0);
+  PID_Init(&PID_Id,50,1,0,6,0);
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
@@ -135,8 +136,27 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-    printf("%f,%f\n", motor_state_isr.iq,motor_state_isr.id);
-    HAL_Delay(100);
+    Menu_Process();
+    
+    // 根据菜单模式设置目标值
+    if(Menu_IsModeSelected())
+    {
+      current_control_mode = Menu_GetMode();
+      float target = Menu_GetTargetValue();
+      
+      if(current_control_mode == MENU_MODE_SPEED)
+      {
+        // 速度控制模式：设置速度目标值
+        PID_Speed.target = target;
+      }
+      else if(current_control_mode == MENU_MODE_TORQUE)
+      {
+        // 转矩控制模式：直接设置iq目标值
+        PID_I.target = target;
+      }
+    }
+    // printf("%f,%d\r\n",motor_state_isr.iq,motor_state_isr.rpm);
+    // HAL_Delay(100);
   }
   /* USER CODE END 3 */
 }
@@ -250,8 +270,12 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
       // 存储带方向的转速（正表示正转，负表示反转）
       motor_state_isr.rpm = (int16_t)rpm_filtered;
 
-      // float u = -Incremental_PID_Calculate(&PID_Speed,motor_state_isr.rpm);
-      // setPhaseVoltage(u, 0, motor_state_isr.radian);
+//      // 速度环输出直接作为PID_I的输入
+     if(current_control_mode == MENU_MODE_SPEED)
+     {
+        float u = -Position_PID_Calculate(&PID_Speed,motor_state_isr.rpm) / 1000;
+        PID_I.target = u;
+     }
 
       last_angle = current_angle;
     }

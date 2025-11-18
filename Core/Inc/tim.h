@@ -42,7 +42,7 @@ extern TIM_HandleTypeDef htim3;
 
 void MX_TIM1_Init(void);
 void MX_TIM6_Init(uint16_t xus);
-void MX_TIM3_Init(uint16_t xms);
+void MX_TIM3_Init(uint16_t xus);
 
 void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);
 
