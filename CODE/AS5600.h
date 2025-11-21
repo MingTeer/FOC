@@ -2,8 +2,8 @@
 #define __AS5600_H
 #include "stm32g0xx.h"                  // Device header
 
-extern float angle;
+extern int16_t angle_q15;
 
-float Get_absolute_angle(void);
+int16_t Get_absolute_angle(void);
 
 #endif

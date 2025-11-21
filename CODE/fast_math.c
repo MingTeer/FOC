@@ -1,4 +1,22 @@
 #include "fast_math.h"
+/* 角度 Q1.15：2π -> 65536 刻度 */
+#define ANGLE_PI_Q15         32768  /* π   ≈ 180°  */
+#define ANGLE_HALF_PI_Q15    16384  /* π/2 ≈  90°  */
+#include <stdint.h>
+
+#ifndef ANGLE_PI_Q15
+#define ANGLE_PI_Q15         32768
+#define ANGLE_HALF_PI_Q15    16384
+#endif
+
+/* CORDIC 使用的 atan(2^-i) 角度表，Q1.15 角度格式
+ * 标度：2π -> 65536 刻度
+ */
+static const int16_t hAtan_Cordic_Q15[16] =
+{
+    8192, 4836, 2555, 1297,  651,  326,  163,   81,
+      41,   20,   10,    5,    3,    1,    1,    0
+};
 
 // 宏定义部分
 #define SIN_COS_TABLE {\
@@ -88,3 +106,102 @@ Trig_Components MCM_Trig_Functions( int16_t hAngle )
   }
   return ( Local_Components );
 }
+
+/* 在第一象限求 atan(ay/ax)，返回 Q1.15 角度，范围 [0, π/2]
+ * 要求：ax >= 0, ay >= 0，不全为 0
+ */
+static int16_t MCM_Atan_Abs_Q15(uint16_t ax, uint16_t ay)
+{
+    /* 特殊情况：刚好在坐标轴上 */
+    if (ax == 0u)
+    {
+        return ANGLE_HALF_PI_Q15;   /* 90° */
+    }
+    if (ay == 0u)
+    {
+        return 0;                   /* 0°  */
+    }
+
+    /* 为了提高精度，把 x,y 先放大 2^8 = 256 倍再做 CORDIC。
+     * int32 足够容纳中间结果（安全范围内）。
+     */
+    int32_t X = ((int32_t)ax) << 8;
+    int32_t Y = ((int32_t)ay) << 8;
+    int32_t Z = 0;
+
+    for (int i = 0; i < 16; ++i)
+    {
+        int32_t x_new, y_new;
+        if (Y > 0)
+        {
+            x_new = X + (Y >> i);
+            y_new = Y - (X >> i);
+            Z    += hAtan_Cordic_Q15[i];
+        }
+        else
+        {
+            x_new = X - (Y >> i);
+            y_new = Y + (X >> i);
+            Z    -= hAtan_Cordic_Q15[i];
+        }
+        X = x_new;
+        Y = y_new;
+    }
+
+    return (int16_t)Z;   /* 结果本身范围在 [0, π/2] 之内 */
+}
+
+/**
+  * @brief  纯整数快速 atan2，和 MCM_Trig_Functions 用同一角度格式
+  * @param  y, x : 通常是 Q1.15 或其它定点格式的向量分量
+  * @retval Q1.15 角度，范围约为 [-π, π) （即 [-32768, 32767]）
+  */
+int16_t MCM_Fast_Atan2_Q15(int16_t y, int16_t x)
+{
+    /* 原点：角度随便定义，这里给 0 */
+    if ((x == 0) && (y == 0))
+    {
+        return 0;
+    }
+
+    /* 先到第一象限求绝对值角度 */
+    uint16_t ax = (x >= 0) ? (uint16_t)x : (uint16_t)(-x);
+    uint16_t ay = (y >= 0) ? (uint16_t)y : (uint16_t)(-y);
+
+    int16_t a = 0;
+    if ((ax == 0u) && (ay == 0u))
+    {
+        a = 0;
+    }
+    else
+    {
+        a = MCM_Atan_Abs_Q15(ax, ay);   /* 0 ~ π/2 */
+    }
+
+    /* 按象限还原符号（完全仿照标准 atan2 逻辑） */
+    int32_t angle;
+
+    if (x >= 0)
+    {
+        /* 右半平面：第一/第四象限 */
+        angle = (y >= 0) ? (int32_t)a : -(int32_t)a;
+    }
+    else
+    {
+        /* 左半平面：第二/第三象限 */
+        if (y >= 0)
+        {
+            /* 第二象限：π - a */
+            angle = (int32_t)ANGLE_PI_Q15 - (int32_t)a;
+        }
+        else
+        {
+            /* 第三象限：a - π  （结果接近 -π） */
+            angle = (int32_t)a - (int32_t)ANGLE_PI_Q15;
+        }
+    }
+
+    /* 压回 int16_t，数值范围自然落在 [-32768,32767] */
+    return (int16_t)angle;
+}
+

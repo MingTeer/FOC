@@ -35,6 +35,7 @@
 #include "dma.h"
 #include "pid.h"
 #include <math.h>
+#include "fast_math.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -51,21 +52,20 @@
 /* USER CODE BEGIN PM */
 typedef struct
 {
-  float iq;
-  float id;
-  float radian;
-  int16_t rpm;    // 改为有符号整数，支持正反转方向（正表示正转，负表示反转）
+  int16_t iq;
+  int16_t id;
+  int16_t radian;
+  int16_t rpm;   
 } motor_state_t;
 
 static volatile motor_state_t motor_state_isr = {0};
-menu_mode_t current_control_mode = MENU_MODE_IDLE;  
-
+menu_mode_t current_control_mode = MENU_MODE_IDLE;
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-
+volatile uint32_t tim6_duration_us = 0;  // TIM6中断执行时间 (微秒)
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -74,6 +74,12 @@ void SystemClock_Config(void);
 PID PID_Speed;
 PID PID_I;
 PID PID_Id;
+
+int16_t current_I[2] = {0,0};
+int16_t iq_temp = 0;
+int16_t id_temp = 0;
+int16_t uq = 0;
+int16_t ud = 0;
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -121,14 +127,14 @@ int main(void)
   HAL_Delay(1000);
   ADC_Start_DMA();
   Current_Sensor_Calibrate_Zero();
-  FOC_Init(12.0f, 6.0f);
+  FOC_Init(12000);
 	MX_TIM3_Init(500);
-	MX_TIM6_Init(500);
+	MX_TIM6_Init(100);
   Menu_Init();
   /* USER CODE END 2 */
-  PID_Init(&PID_Speed,0.5,0.1,0,1000,500);
-  PID_Init(&PID_I,40,1,20,6,0);
-  PID_Init(&PID_Id,50,1,0,6,0);
+  PID_Init(&PID_Speed,500,8,0,100000,100000,0);
+  PID_Init(&PID_I,300,8,0,limit_voltage,limit_voltage / 16,0);
+  PID_Init(&PID_Id,200,16,0,limit_voltage,limit_voltage / 16,0);
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
@@ -136,27 +142,28 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-    Menu_Process();
+//    Menu_Process();
+//    
+//    // // 根据菜单模式设置目标值
+//    if(Menu_IsModeSelected())
+//    {
+//      current_control_mode = Menu_GetMode();
+//      float target = Menu_GetTargetValue();
+//      
+//      if(current_control_mode == MENU_MODE_SPEED)
+//      {
+//        // 速度控制模式：设置速度目标值
+//        if(target > 1300)target = 1300;
+//        PID_Speed.target = target;
+//      }
+//      else if(current_control_mode == MENU_MODE_TORQUE)
+//      {
+//        // 转矩控制模式：直接设置iq目标值
+//        PID_I.target = target;
+//      }
+//    }
+    printf("%d,%d\n", motor_state_isr.rpm, motor_state_isr.iq);
     
-    // 根据菜单模式设置目标值
-    if(Menu_IsModeSelected())
-    {
-      current_control_mode = Menu_GetMode();
-      float target = Menu_GetTargetValue();
-      
-      if(current_control_mode == MENU_MODE_SPEED)
-      {
-        // 速度控制模式：设置速度目标值
-        PID_Speed.target = target;
-      }
-      else if(current_control_mode == MENU_MODE_TORQUE)
-      {
-        // 转矩控制模式：直接设置iq目标值
-        PID_I.target = target;
-      }
-    }
-    // printf("%f,%d\r\n",motor_state_isr.iq,motor_state_isr.rpm);
-    // HAL_Delay(100);
   }
   /* USER CODE END 3 */
 }
@@ -218,66 +225,59 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
   {
     // TIM6微秒中断处理程序 - 用户自定义功能
     /* USER CODE BEGIN TIM6_IRQ */
-    float electrical_angle = motor_state_isr.radian;
-    float current_I[2] = {0,0};
+    uint32_t start_cycles = __HAL_TIM_GET_COUNTER(&htim6);
+    
+    int16_t electrical_angle = motor_state_isr.radian;
     Get_Phase_Currents(current_I);
-    float iq_temp = 0.0f;
-    float id_temp = 0.0f;
     cal_Iq_Id(current_I[0], current_I[1], electrical_angle, &iq_temp, &id_temp);
-    float iq_value = iq_temp * 0.1 + motor_state_isr.iq * 0.9;
-    float id_value = id_temp * 0.1 + motor_state_isr.id * 0.9;
-    motor_state_isr.iq = iq_value;
-    motor_state_isr.id = id_value;
-    float uq = Position_PID_Calculate(&PID_I,motor_state_isr.iq);
-    float ud = Position_PID_Calculate(&PID_Id,motor_state_isr.id);
-    setPhaseVoltage(uq, ud, motor_state_isr.radian);
+    motor_state_isr.iq = (iq_temp + motor_state_isr.iq * 9) / 10;
+    motor_state_isr.id = (id_temp + motor_state_isr.id * 9) / 10;
+    uq = Position_PID_Calculate(&PID_I,motor_state_isr.iq);
+    ud = Position_PID_Calculate(&PID_Id,motor_state_isr.id);
+    setPhaseVoltage_SVPWM(uq, ud, electrical_angle);
+    
+    uint32_t end_cycles = __HAL_TIM_GET_COUNTER(&htim6);
+    if(end_cycles >= start_cycles)
+    {
+      tim6_duration_us = end_cycles - start_cycles;
+    }
+    else
+    {
+      tim6_duration_us = (htim6.Init.Period + 1 - start_cycles) + end_cycles;
+    }
     /* USER CODE END TIM6_IRQ */
   }
   else if(htim->Instance == TIM3)
   {
-    float radian_value = -electricAngle_position();
+    int16_t radian_value = -electricAngle_position();
     motor_state_isr.radian = radian_value;
-    static float last_angle = 0;
+    
+    static int16_t last_angle = 0;
     static uint8_t angle_initialized = 0;
-    static float rpm_filtered = 0;
-
-    // 获取当前角度
-    float current_angle = angle;
+    static int32_t rpm_filtered_q4 = 0; // Q4格式以保留滤波精度
 
     if(!angle_initialized)
     {
-      last_angle = current_angle;
+      last_angle = radian_value;
       angle_initialized = 1;
       motor_state_isr.rpm = 0;
     }
     else
     {
-      float angle_diff = current_angle - last_angle;
+      int16_t angle_diff = radian_value - last_angle;
+      int32_t rpm_raw = ((int32_t)angle_diff * 67) >> 8;
+      rpm_filtered_q4 = (rpm_filtered_q4 * 9 + (rpm_raw << 4)) / 10;
+      motor_state_isr.rpm = (int16_t)(rpm_filtered_q4 >> 4);
 
-      // 计算角度差，处理0-360度跳变
-      if(angle_diff > 180) {
-          angle_diff -= 360;  // 正向跳变，减360
-      } else if(angle_diff < -180) {
-          angle_diff += 360;  // 反向跳变，加360
-      }
+      // 速度环处理
+//     if(current_control_mode == MENU_MODE_SPEED)
+//     {
+        // 注意：假设 Position_PID_Calculate 返回整型
+        // 如果原代码是浮点除法 /1000.0f，这里保留整数除法可能需要调整增益
+        PID_I.target = Position_PID_Calculate(&PID_Speed,motor_state_isr.rpm) / 1000;
+//     }
 
-      // 根据角度差符号确定旋转方向并计算转速
-      float rpm_raw = angle_diff / 360.0f * 2000.0f * 60.0f;  // 2kHz采样, 转换为rpm
-
-      // 低通滤波器平滑转速输出
-      rpm_filtered = 0.9f * rpm_filtered + 0.1f * rpm_raw;
-
-      // 存储带方向的转速（正表示正转，负表示反转）
-      motor_state_isr.rpm = (int16_t)rpm_filtered;
-
-//      // 速度环输出直接作为PID_I的输入
-     if(current_control_mode == MENU_MODE_SPEED)
-     {
-        float u = -Position_PID_Calculate(&PID_Speed,motor_state_isr.rpm) / 1000;
-        PID_I.target = u;
-     }
-
-      last_angle = current_angle;
+      last_angle = radian_value;
     }
   }
 }

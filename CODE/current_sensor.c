@@ -3,8 +3,11 @@
 
 
 /* 全局变量定义 */
-float current_offset_a = 0.0f;  /* A相电流零漂偏移 */
-float current_offset_b = 0.0f;  /* B相电流零漂偏移 */
+uint16_t current_offset_a = 0;  /* A相电流零漂偏移 (ADC原始值) */
+uint16_t current_offset_b = 0;  /* B相电流零漂偏移 (ADC原始值) */
+ 
+uint16_t gain_factor = 1;  /* 放大系数，调节电流采样率 */
+
 
 /**
  * @brief  零漂校准，读取1000次取平均值
@@ -36,35 +39,26 @@ void Current_Sensor_Calibrate_Zero(void)
     float samples = (float)ZERO_CALIBRATION_SAMPLES;
     if (samples > 0.0f)
     {
-        current_offset_a = sum_a / samples;
-        current_offset_b = sum_b / samples;
+        /* 将电压偏移转换回ADC原始值 */
+        current_offset_a = (uint16_t)(sum_a / samples * ADC_RESOLUTION / VREF_V);
+        current_offset_b = (uint16_t)(sum_b / samples * ADC_RESOLUTION / VREF_V);
     }
+
+    gain_factor = (uint16_t)(1 / CURRENT_GAIN / SHUNT_RESISTANCE);
 }
 
 /**
  * @brief  获取两相电流值
- * @param  currents: 浮点数组，currents[0]=A相电流，currents[1]=B相电流 (A)
+ * @param  currents: uint16_t 数组，currents[0]=A相电流，currents[1]=B相电流 (ADC原始值减去零漂)
  * @retval 无
  */
-void Get_Phase_Currents(float *currents)
+void Get_Phase_Currents(int16_t *currents)
 {
-    float voltage_a, voltage_b;
-
     /* 从DMA缓冲区读取ADC原始值 */
     uint16_t raw_a = adc_dma_buffer[0];
     uint16_t raw_b = adc_dma_buffer[1];
 
-    /* Convert raw ADC readings to voltage (V) */
-    voltage_a = (float)raw_a * VREF_V / ADC_RESOLUTION;
-    voltage_b = (float)raw_b * VREF_V / ADC_RESOLUTION;
-
-    /* 计算相对于中点电压的差值 */
-    voltage_a = voltage_a - current_offset_a;
-    voltage_b = voltage_b - current_offset_b;
-
-    /* Convert voltage offset to current (A) */
-    float sense_factor = CURRENT_GAIN * SHUNT_RESISTANCE;
-
-    currents[0] = voltage_a / sense_factor;
-    currents[1] = voltage_b / sense_factor;
+    /* 减去零漂偏移，直接输出ADC值差值 */
+    currents[0] = (raw_a - current_offset_a) / gain_factor;
+    currents[1] = (raw_b - current_offset_b) / gain_factor;
 }

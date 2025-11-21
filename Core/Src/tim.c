@@ -45,7 +45,7 @@ void MX_TIM1_Init(void)
   /* USER CODE END TIM1_Init 1 */
   htim1.Instance = TIM1; // 选择定时器1
   htim1.Init.Prescaler = 3; // 预分频器为7，(8分频后10kHz@80MHz)
-  htim1.Init.CounterMode = TIM_COUNTERMODE_UP; // 向上计数模式
+  htim1.Init.CounterMode = TIM_COUNTERMODE_CENTERALIGNED1; // 向中计数模式
   htim1.Init.Period = 999; // 自动重装载值，PWM周期(1000计数，对应10kHz@8MHz)
   htim1.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1; // 时钟不分频
   htim1.Init.RepetitionCounter = 0; // 重复计数器
@@ -55,6 +55,7 @@ void MX_TIM1_Init(void)
     Error_Handler();
   }
   sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET; // 主模式触发输出选择
+  // TRGO2 由CH4的高电平中点（PWM2）产生脉冲，用于触发ADC/DMA采样
   sMasterConfig.MasterOutputTrigger2 = TIM_TRGO2_OC4REF;
   sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE; // 禁止主从模式
   if (HAL_TIMEx_MasterConfigSynchronization(&htim1, &sMasterConfig) != HAL_OK) // 主从同步配置
@@ -80,8 +81,8 @@ void MX_TIM1_Init(void)
   {
     Error_Handler();
   }
-  sConfigOC.OCMode = TIM_OCMODE_PWM2;
-  sConfigOC.Pulse = (htim1.Init.Period + 1) / 2;
+  sConfigOC.OCMode = TIM_OCMODE_PWM1;
+  sConfigOC.Pulse = 1 ; // CH4在周期中点高电平，用作采样触发基准
   if (HAL_TIM_OC_ConfigChannel(&htim1, &sConfigOC, TIM_CHANNEL_4) != HAL_OK) // 通道4用于ADC触发
   {
     Error_Handler();

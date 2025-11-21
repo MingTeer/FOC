@@ -16,7 +16,7 @@ extern "C" {
 #define ZERO_CALIBRATION_SAMPLES 1000U   /* 零漂校准采样次数 */
 
 /* 函数声明 */
-void Get_Phase_Currents(float *currents);           /* 获取两相电流值 */
+void Get_Phase_Currents(int16_t *currents);           /* 获取两相电流值 */
 void Current_Sensor_Calibrate_Zero(void);           /* 零漂校准 */
 
 #ifdef __cplusplus

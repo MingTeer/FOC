@@ -16,4 +16,11 @@ typedef struct {
   */
 Trig_Components MCM_Trig_Functions(int16_t hAngle);
 
+/**
+ * @brief  纯整数快速 atan2，和 MCM_Trig_Functions 用同一角度格式
+ * @param  y, x : 通常是 Q1.15 或其它定点格式的向量分量
+ * @retval Q1.15 角度，范围约为 [-π, π) （即 [-32768, 32767]）
+ */
+int16_t MCM_Fast_Atan2_Q15(int16_t y, int16_t x);
+
 #endif // __FAST_MATH_H

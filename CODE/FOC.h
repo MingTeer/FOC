@@ -1,100 +1,31 @@
 /**
  * @file    FOC.h
- * @brief   FOC(Field Oriented Control)电机控制算法头文件
- * @version 1.0
- * @date    2025
- * @note    实现FOC磁场定向控制算法，包括电压控制、角度计算和电流变换
+ * @brief   Integer-only FOC (Field Oriented Control) interfaces.
  */
 
 #ifndef __FOC_H
 #define __FOC_H
 
-/*
- * =================================================================================
- *                            系统初始化函数
- * =================================================================================
- */
+#include "stm32g0xx.h"
 
-/**
- * @brief  FOC系统初始化
- * @param  power_voltage   电源电压，单位V (典型值: 12V, 24V, 48V)
- * @param  limit_voltage   限制电压，单位V (建议不超过电源电压的80%)
- * @retval void
- * @note   初始化电压参数，执行传感器校准，设置安全限制
- *         调用此函数前需确保AS5600编码器已正常工作
- *         函数执行时间约2.5秒(包含传感器校准时间)
- */
-void FOC_Init(float power_voltage, float limit_voltage);
+/* Fixed-point constants */
+#define PI_Q15             32768   /* pi in Q1.15 */
+#define TWO_PI_Q15         65536   /* 2*pi in Q1.15 */
+#define ONE_DIV_SQRT3_Q15  18919   /* 1/sqrt(3) * 32768 */
+#define TWO_DIV_SQRT3_Q15  37838   /* 2/sqrt(3) * 32768 */
+#define SQRT3_Q15          56809   /* sqrt(3) * 32768 */
 
-/*
- * =================================================================================
- *                            FOC控制算法函数
- * =================================================================================
- */
+extern int16_t limit_voltage;        /* limit voltage (mV) */
 
-/**
- * @brief  设置空间矢量PWM电压 (FOC核心算法)
- * @param  Uq             q轴电压分量，单位V (控制转矩)
- * @param  Ud             d轴电压分量，单位V (控制磁场，通常设为0)
- * @param  angle_eletric  电角度，单位弧度，范围[0, 2π)
- * @retval void
- * @note   实现反Park变换和空间矢量PWM算法
- *         输入dq坐标系电压，转换为三相PWM输出
- *         内部使用快速查表法计算三角函数，提高实时性
- *         电压会自动限制在安全范围内
- */
-void setPhaseVoltage(float Uq, float Ud, float angle_eletric);
+/* System init */
+void FOC_Init(uint16_t power_voltage_mv);
 
-/*
- * =================================================================================
- *                            传感器相关函数
- * =================================================================================
- */
-
-/**
- * @brief  获取当前电角度位置
- * @param  void
- * @retval 电角度，单位弧度，范围[0, 2π)
- * @note   结合AS5600编码器反馈和零点偏移计算实际电角度
- *         函数内部自动进行角度归一化处理
- *         用于FOC算法的坐标系变换
- */
-float electricAngle_position(void);
-
-/*
- * =================================================================================
- *                            数学工具函数
- * =================================================================================
- */
-
-/**
- * @brief  角度归一化到[-180°, 180°)
- * @param  angle  输入角度，单位度
- * @retval 归一化后的角度，范围[-180°, 180°)
- * @note   便于角度差值计算和显示
- *         常用于角度误差计算和数据处理
- */
-float normallizeDegree(float angle);
-
-/**
- * @brief  计算q轴和d轴电流分量（Iq和Id）
- * @param  current_a  A相电流（单位：A）
- * @param  current_b  B相电流（单位：A）
- * @param  angle_el   电角度（单位：弧度，通常为实际转子电角度）
- * @param  iq_out     q轴电流分量输出指针（单位：A），可为NULL
- * @param  id_out     d轴电流分量输出指针（单位：A），可为NULL
- * @retval void
- * @note   用于根据两相采样电流计算q轴和d轴电流，实现Clarke变换和Park变换
- *         如果只需要其中一个值，可以将另一个指针设为NULL
- */
-void cal_Iq_Id(float current_a, float current_b, float angle_el, float *iq_out, float *id_out);
-
-/**
- * @brief  相序自检：Ud>0 使磁场对齐 d 轴、Uq=0，无转矩抖动小
- * @param  void
- * @retval void
- * @note   用于验证FOC算法的相序正确性
- */
+/* Core control helpers */
+void setPhaseVoltage(int16_t Uq, int16_t Ud, int16_t angle_eletric);
+void setPhaseVoltage_SVPWM(int16_t Uq, int16_t Ud, int16_t angle_el);
+int16_t electricAngle_position(void);
+int16_t normallizeDegree(int16_t angle);
+void cal_Iq_Id(int16_t current_a, int16_t current_b, int16_t angle_el, int16_t *iq_out, int16_t *id_out);
 void PhaseOrderSelfTest(void);
 
 #endif

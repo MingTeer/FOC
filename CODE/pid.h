@@ -22,14 +22,16 @@ extern "C" {
  * @brief PID控制器结构体
  */
 typedef struct {
-    float kp;            /* 比例系数 */
-    float ki;            /* 积分系数 */
-    float kd;            /* 微分系数 */
-    float target;        /* 目标值 */
-    float last_error;    /* 上一次误差 */
-    float integral;      /* 积分累计值 */
-    float output_max;    /* 输出上限 */
-    float output_min;    /* 输出下限 */
+    int32_t kp;            /* 比例系数 */
+    int32_t ki;            /* 积分系数 */
+    int32_t kd;            /* 微分系数 */
+    int32_t target;        /* 目标值 */
+    int32_t last_error;    /* 上一次误差 */
+    int32_t integral;      /* 积分累计值 */
+    int32_t output_max;    /* 输出上限 */
+    int32_t output_min;    /* 输出下限 */
+    int32_t integral_max;  /* 积分项上限 */
+    int32_t integral_min;  /* 积分项下限 */
 } PID;
 
 /**
@@ -39,9 +41,9 @@ typedef struct {
  * @param ki 积分系数
  * @param kd 微分系数
  * @param output_max 输出上限
- * @param output_min 输出下限
+ * @param integral_max 积分项上限
  */
-void PID_Init(PID *pid, float kp, float ki, float kd, float max, float target);
+void PID_Init(PID *pid, int32_t kp, int32_t ki, int32_t kd, int32_t output_max, int32_t integral_max, int32_t target);
 
 /**
  * @brief 增量式PID计算
@@ -49,7 +51,7 @@ void PID_Init(PID *pid, float kp, float ki, float kd, float max, float target);
  * @param feedback 反馈值
  * @return PID输出值
  */
-float Incremental_PID_Calculate(PID *pid, float feedback);
+int32_t Incremental_PID_Calculate(PID *pid, int32_t feedback);
 
 /**
  * @brief 位置式PID计算
@@ -57,7 +59,7 @@ float Incremental_PID_Calculate(PID *pid, float feedback);
  * @param feedback 反馈值
  * @return PID输出值
  */
-float Position_PID_Calculate(PID *pid, float feedback);
+int32_t Position_PID_Calculate(PID *pid, int32_t feedback);
 
 #ifdef __cplusplus
 }
